@@ -1,6 +1,6 @@
 #!/usr/bin/env k8
 
-const version = "r605";
+const version = "r613";
 
 /**************
  * From k8.js *
@@ -249,7 +249,7 @@ function mg_cmd_getlcr(args) {
 	const re = /([^\s=;]+)=([^\s=;]+)/g;
 	for (const line of k8_readline(args[0])) {
 		if (line[0] == '#') continue;
-		let m, t = line.split("\t", 5 + ref_idx);
+		let m, t = line.split("\t", 6 + ref_idx);
 		let ldust = 0, lbb = 0, anno = null, alen = null, ac = null, ref = null;
 		while ((m = re.exec(t[3])) != null) {
 			if (m[1] == "LBUBBLE") lbb = parseInt(m[2]);
@@ -260,30 +260,25 @@ function mg_cmd_getlcr(args) {
 		}
 		if (alen == null) continue;
 		let is_lcr = /^(lcr|mini|micro|ldust)$/.test(anno);
-		if (anno == "segdup" && lbb > 0 && ldust >= lbb * min_lcr)
+		if (!/(Satellite|alpha|hsat2\/3)/.test(anno) && lbb > 0 && ldust >= lbb * min_lcr)
 			is_lcr = true;
 		if (!is_lcr) continue;
 
-		if ((m = /^(\d+)/.exec(t[4 + ref_idx])) == null) continue;
+		if ((m = /^(\d+)/.exec(t[5 + ref_idx])) == null) continue;
 		ref = parseInt(m[1]);
-		let alen_sel = [];
+		let n_alt = 0, max_alen = 0;
 		for (let i = 0; i < ac.length; ++i) {
 			ac[i] = parseInt(ac[i]);
 			alen[i] = parseInt(alen[i]);
-			if (i == ref || ac[i] >= min_ac)
-				alen_sel.push(alen[i]);
+			max_alen = max_alen > alen[i]? max_alen : alen[i];
+			if (i != ref) n_alt += ac[i];
 		}
-		if (alen_sel.length < 2) continue;
+		if (n_alt < min_ac) continue;
 		const ctg = t[0].replace(/^[^\s#]+#\d#/, "");
 		let st = parseInt(t[1]);
 		let en = parseInt(t[2]);
-		let max = en - st;
-		for (let i = 0; i < alen_sel.length; ++i) {
-			const l = parseInt(alen_sel[i]);
-			max = l > max? l : max;
-		}
 		st = st > ext? st - ext : 0;
-		print(ctg, st, en + ext, "mg", max);
+		print(ctg, st, en + ext, "mg", max_alen);
 	}
 }
 
